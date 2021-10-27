@@ -1,9 +1,14 @@
 import 'package:flame/components.dart';
+import 'package:flame/geometry.dart';
 import 'package:flame/sprite.dart';
+import 'package:rayworld/components/world_collidable.dart';
 import '../helpers/direction.dart';
 
-class Player extends SpriteAnimationComponent with HasGameRef {
+class Player extends SpriteAnimationComponent
+    with HasGameRef, Hitbox, Collidable {
   Direction direction = Direction.none;
+  Direction _collisionDirection = Direction.none;
+  bool _hasCollided = false;
   final double _playerSpeed = 300.0;
 
   final double _animationSpeed = 0.15;
@@ -16,7 +21,9 @@ class Player extends SpriteAnimationComponent with HasGameRef {
   Player()
       : super(
           size: Vector2.all(50.00),
-        );
+        ) {
+    addHitbox(HitboxRectangle());
+  }
 
   @override
   Future<void> onLoad() async {
@@ -54,20 +61,28 @@ class Player extends SpriteAnimationComponent with HasGameRef {
   void movePlayer(double delta) {
     switch (direction) {
       case Direction.up:
-        animation = _runUpAnimation;
-        moveUp(delta);
+        if (canPlayerMoveUp()) {
+          animation = _runUpAnimation;
+          moveUp(delta);
+        }
         break;
       case Direction.down:
-        animation = _runDownAnimation;
-        moveDown(delta);
+        if (canPlayerMoveDown()) {
+          animation = _runDownAnimation;
+          moveDown(delta);
+        }
         break;
       case Direction.left:
-        animation = _runLeftAnimation;
-        moveLeft(delta);
+        if (canPlayerMoveLeft()) {
+          animation = _runLeftAnimation;
+          moveLeft(delta);
+        }
         break;
       case Direction.right:
-        animation = _runRightAnimation;
-        moveRight(delta);
+        if (canPlayerMoveRight()) {
+          animation = _runRightAnimation;
+          moveRight(delta);
+        }
         break;
       case Direction.none:
         animation = _standingAnimation;
@@ -89,5 +104,53 @@ class Player extends SpriteAnimationComponent with HasGameRef {
 
   void moveRight(double delta) {
     position.add(Vector2(delta * _playerSpeed, 0));
+  }
+
+  @override
+  void onCollision(Set<Vector2> intersectionPoints, Collidable other) {
+    if (other is WorldCollidable) {
+      if (!_hasCollided) {
+        _hasCollided = true;
+        _collisionDirection = direction;
+      }
+    }
+  }
+
+  @override
+  void onCollisionEnd(Collidable other) {
+    if (other is WorldCollidable) {
+      if (_hasCollided) {
+        _hasCollided = false;
+        _collisionDirection = direction;
+      }
+    }
+  }
+
+  bool canPlayerMoveUp() {
+    if (_hasCollided && _collisionDirection == Direction.up) {
+      return false;
+    }
+    return true;
+  }
+
+  bool canPlayerMoveDown() {
+    if (_hasCollided && _collisionDirection == Direction.down) {
+      return false;
+    }
+    return true;
+  }
+
+  bool canPlayerMoveLeft() {
+    if (_hasCollided && _collisionDirection == Direction.left) {
+      return false;
+    }
+    return true;
+  }
+
+  bool canPlayerMoveRight() {
+    if (_hasCollided && _collisionDirection == Direction.right) {
+      return false;
+    }
+    return true;
   }
 }
